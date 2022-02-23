@@ -7,7 +7,6 @@ class Context:
     def __init__(self, func, *tensors):
         self.func = func
         self.children = tensors
-
         self.saved_data = []
 
     def save_for_backward(self, *data):
@@ -28,27 +27,51 @@ class Function:
         raise NotImplementedError()
 
     @staticmethod
-    def backward(ctx: Any, grad_outputs: Any) -> Any:
+    def backward(ctx: Any, grad_output: Any) -> Any:
         '''Calculates the vector jacobian product for this operation.
         '''
         raise NotImplementedError()
 
+class Add(Function):
+    @staticmethod
+    def forward(ctx, x, y):
+        return x + y
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return 1, 1
+
 class Mul(Function):
     @staticmethod
-    def forward(ctx, x: Tensor, y: Tensor):
+    def forward(ctx, x, y):
         ctx.save_for_backward(x, y)
         return x * y
 
     @staticmethod
-    def backward(ctx, grad_outputs) -> Any:
+    def backward(ctx, grad_output):
         x, y = ctx.saved_data
         return y, x
 
-class Add(Function):
+class Dot(Function):
     @staticmethod
-    def forward(ctx, x: Tensor, y: Tensor):
-        return x + y
+    def forward(ctx, x, y):
+        ctx.save_for_backward(x, y)
+        return x.dot(y)
 
     @staticmethod
-    def backward(ctx, grad_outputs) -> Any:
-        return 1, 1
+    def backward(ctx, grad_output):
+        x, y = ctx.saved_data
+        dx = grad_output.dot(y.T)
+        dy = grad_output.T.dot(x).T
+        return dx, dy
+
+class Sum(Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return x.sum()
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x, = ctx.saved_data
+        return grad_output * np.ones_like(x)
