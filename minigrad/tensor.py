@@ -40,3 +40,23 @@ class Tensor:
     def mean(self):
         d = Tensor(np.array([1 / self.data.size]))
         return self.sum() * d
+
+    @classmethod
+    def eye(cls, dim, **kwargs):
+        return cls(np.eye(dim).astype(np.float32), **kwargs)
+
+    @classmethod
+    def zeros(cls, *shape, **kwargs):
+        return cls(np.zeros(shape, dtype=np.float32), **kwargs)
+
+    @classmethod
+    def ones(cls, *shape, **kwargs):
+        return cls(np.ones(shape, dtype=np.float32), **kwargs)
+
+    @classmethod
+    def randn(cls, *shape, **kwargs):
+        return cls(np.random.randn(*shape).astype(np.float32), **kwargs)
+
+    @classmethod
+    def uniform(cls, *shape, **kwargs):
+        return cls((np.random.uniform(-1., 1., size=shape) / np.sqrt(np.prod(shape))).astype(np.float32), **kwargs)
