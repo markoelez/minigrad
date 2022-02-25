@@ -7,11 +7,17 @@ np.set_printoptions(precision=4)
 class Tensor:
     def __init__(self, data):
         self.data = data
+        if not isinstance(data, np.ndarray):
+            self.data = np.array(self.data)
         self.grad = None
         self._ctx = None
 
     def backward(self):
-        assert self.shape == (1, )
+        assert self.shape == (1, ) or self.shape == ()
+        
+        # reshape scalars
+        if self.shape == ():
+            self.data = self.data.reshape((1, ))
 
         # seed root gradient
         self.grad = np.ones_like(self.data)
@@ -33,9 +39,12 @@ class Tensor:
     
     @property
     def shape(self):
-        if type(self.data) == type(np.array([])):
+        if isinstance(self.data, np.ndarray):
             return self.data.shape
         return (1, )
+
+    def div(self, y):
+        return self * (y ** Tensor(-1.0))
 
     def mean(self):
         d = Tensor(np.array([1 / self.data.size]))

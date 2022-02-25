@@ -17,7 +17,8 @@ class Function:
     @classmethod
     def apply(cls, *args):
         ctx = Context(cls, *args)
-        res = Tensor(cls.forward(ctx, *[t.data for t in args]))
+        args = [t.data for t in args]
+        res = Tensor(cls.forward(ctx, *args))
         res._ctx = ctx
         return res
 
@@ -90,11 +91,35 @@ class ReLU(Function):
         dx[x < 0] = 0
         return dx
 
+class Pow(Function):
+    @staticmethod
+    def forward(ctx, x, y):
+        ctx.save_for_backward(x, y)
+        return x ** y
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x, y = ctx.saved_data
+        return y * (x**(y-1.0)) * grad_output, (x**y) * np.log(x) * grad_output
+
+
+class Sub(Function):
+    @staticmethod
+    def forward(ctx, x, y):
+        return x - y
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        return 1, -1
+
+
 # register all operations
 setattr(Tensor, '__mul__', partialmethod(Mul.apply))
 setattr(Tensor, '__add__', partialmethod(Add.apply))
-setattr(Tensor, 'matmul', partialmethod(Dot.apply))
+setattr(Tensor, '__sub__', partialmethod(Sub.apply))
 setattr(Tensor, 'dot', partialmethod(Dot.apply))
+setattr(Tensor, 'matmul', partialmethod(Dot.apply))
 setattr(Tensor, '__matmul__', partialmethod(Dot.apply))
 setattr(Tensor, 'sum', partialmethod(Sum.apply))
 setattr(Tensor, 'relu', partialmethod(ReLU.apply))
+setattr(Tensor, '__pow__', partialmethod(Pow.apply))
