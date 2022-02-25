@@ -34,6 +34,12 @@ class Function:
         '''
         raise NotImplementedError()
 
+    @classmethod
+    def register(cls):
+        '''Register a Tensor operation.
+        '''
+        raise NotImplementedError()
+
 class Add(Function):
     @staticmethod
     def forward(ctx, x, y):
@@ -42,6 +48,11 @@ class Add(Function):
     @staticmethod
     def backward(ctx, grad_output):
         return 1, 1
+
+    @classmethod
+    def register(cls):
+        setattr(Tensor, 'add', partialmethod(cls.apply))
+        setattr(Tensor, '__add__', partialmethod(cls.apply))
 
 class Mul(Function):
     @staticmethod
@@ -53,6 +64,11 @@ class Mul(Function):
     def backward(ctx, grad_output):
         x, y = ctx.saved_data
         return y * grad_output, x * grad_output
+
+    @classmethod
+    def register(cls):
+        setattr(Tensor, 'mul', partialmethod(cls.apply))
+        setattr(Tensor, '__mul__', partialmethod(cls.apply))
 
 class Dot(Function):
     @staticmethod
@@ -67,6 +83,12 @@ class Dot(Function):
         dy = grad_output.T.dot(x).T
         return dx, dy
 
+    @classmethod
+    def register(cls):
+        setattr(Tensor, 'dot', partialmethod(cls.apply))
+        setattr(Tensor, 'matmul', partialmethod(cls.apply))
+        setattr(Tensor, '__matmul__', partialmethod(cls.apply))
+
 class Sum(Function):
     @staticmethod
     def forward(ctx, x):
@@ -77,6 +99,10 @@ class Sum(Function):
     def backward(ctx, grad_output):
         x, = ctx.saved_data
         return grad_output * np.ones_like(x)
+
+    @classmethod
+    def register(cls):
+        setattr(Tensor, 'sum', partialmethod(cls.apply))
 
 class ReLU(Function):
     @staticmethod
@@ -91,6 +117,10 @@ class ReLU(Function):
         dx[x < 0] = 0
         return dx
 
+    @classmethod
+    def register(cls):
+        setattr(Tensor, 'relu', partialmethod(cls.apply))
+
 class Pow(Function):
     @staticmethod
     def forward(ctx, x, y):
@@ -102,6 +132,10 @@ class Pow(Function):
         x, y = ctx.saved_data
         return y * (x**(y-1.0)) * grad_output, (x**y) * np.log(x) * grad_output
 
+    @classmethod
+    def register(cls):
+        setattr(Tensor, '__pow__', partialmethod(cls.apply))
+        setattr(Tensor, 'pow', partialmethod(cls.apply))
 
 class Sub(Function):
     @staticmethod
@@ -112,14 +146,12 @@ class Sub(Function):
     def backward(ctx, grad_output):
         return 1, -1
 
+    @classmethod
+    def register(cls):
+        setattr(Tensor, '__sub__', partialmethod(cls.apply))
+        setattr(Tensor, 'sub', partialmethod(cls.apply))
+
 
 # register all operations
-setattr(Tensor, '__mul__', partialmethod(Mul.apply))
-setattr(Tensor, '__add__', partialmethod(Add.apply))
-setattr(Tensor, '__sub__', partialmethod(Sub.apply))
-setattr(Tensor, 'dot', partialmethod(Dot.apply))
-setattr(Tensor, 'matmul', partialmethod(Dot.apply))
-setattr(Tensor, '__matmul__', partialmethod(Dot.apply))
-setattr(Tensor, 'sum', partialmethod(Sum.apply))
-setattr(Tensor, 'relu', partialmethod(ReLU.apply))
-setattr(Tensor, '__pow__', partialmethod(Pow.apply))
+for op in [Add, Mul, Dot, Sub, Sum, ReLU, Pow]:
+    op.register()
