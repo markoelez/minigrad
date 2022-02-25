@@ -37,7 +37,6 @@ class Tensor:
             return self.data.shape
         return (1, )
 
-    def __mul__(self, other):
-        if type(self) != type(other):
-            other = Tensor(other)
-        return Tensor(self.data * other.data)
+    def mean(self):
+        d = Tensor(np.array([1 / self.data.size]))
+        return self.sum() * d

@@ -1,6 +1,7 @@
 import numpy as np
 from typing import Any, List, Optional
 from minigrad.tensor import Tensor
+from functools import partialmethod
 
 
 class Context:
@@ -50,7 +51,7 @@ class Mul(Function):
     @staticmethod
     def backward(ctx, grad_output):
         x, y = ctx.saved_data
-        return y, x
+        return y * grad_output, x * grad_output
 
 class Dot(Function):
     @staticmethod
@@ -75,3 +76,25 @@ class Sum(Function):
     def backward(ctx, grad_output):
         x, = ctx.saved_data
         return grad_output * np.ones_like(x)
+
+class ReLU(Function):
+    @staticmethod
+    def forward(ctx, x):
+        ctx.save_for_backward(x)
+        return np.maximum(x, 0)
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        x, = ctx.saved_data
+        dx = grad_output.copy()
+        dx[x < 0] = 0
+        return dx
+
+# register all operations
+setattr(Tensor, '__mul__', partialmethod(Mul.apply))
+setattr(Tensor, '__add__', partialmethod(Add.apply))
+setattr(Tensor, 'matmul', partialmethod(Dot.apply))
+setattr(Tensor, 'dot', partialmethod(Dot.apply))
+setattr(Tensor, '__matmul__', partialmethod(Dot.apply))
+setattr(Tensor, 'sum', partialmethod(Sum.apply))
+setattr(Tensor, 'relu', partialmethod(ReLU.apply))
