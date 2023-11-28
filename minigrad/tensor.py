@@ -1,7 +1,7 @@
 from __future__ import annotations
 from minigrad.util import topological_sort
 import numpy as np
-from typing import Any, List, Optional
+from typing import Any
 
 np.set_printoptions(precision=4)
 

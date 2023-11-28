@@ -9,7 +9,7 @@ repos:
         pass_filenames: false
       - id: lint
         name: lint
-        entry: env PYTHONPATH="." python -m pylint --disable=all -e W0311 --jobs=0  **/*.py
+        entry: env PYTHONPATH="." python3 -m pylint minigrad/
         language: system
         always_run: true
         pass_filenames: false

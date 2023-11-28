@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Any, List, Optional
 from minigrad.tensor import Function
 
 
