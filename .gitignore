@@ -4,6 +4,7 @@ venv/
 .DS_Store
 .vscode
 .pytest_cache
+.mypy_cache
 .python-version
 ._*
 __pycache__/
