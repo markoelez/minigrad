@@ -1,2 +1,1 @@
-import minigrad.tensor
-import minigrad.function
+from minigrad.tensor import Tensor

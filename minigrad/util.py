@@ -1,6 +1,7 @@
 
 def topological_sort(node):
-    '''Return topological ordering of tensors in computational tree.
+    '''
+    Return topological ordering of tensors in computational tree.
     '''
     def topo(n, res, visited):
         visited.add(n)

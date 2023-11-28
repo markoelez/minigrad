@@ -2,6 +2,9 @@ tmp/
 venv/
 
 .DS_Store
+.vscode
+.pytest_cache
+.python-version
 ._*
 __pycache__/
 *.py[cod]
@@ -15,3 +18,4 @@ dist/
 env/
 venv/
 [._]*.sw[a-p]
+**.gz

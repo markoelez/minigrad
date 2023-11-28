@@ -1,7 +1,43 @@
+from __future__ import annotations
 from minigrad.util import topological_sort
 import numpy as np
+from typing import Any, List, Optional
 
 np.set_printoptions(precision=4)
+
+
+class Context:
+    def __init__(self, func, *tensors):
+        self.func = func
+        self.children = tensors
+        self.saved_data = []
+
+    def save_for_backward(self, *data):
+        self.saved_data.extend(data)
+
+
+class Function:
+    @classmethod
+    def apply(cls, *args):
+        ctx = Context(cls, *args)
+        res = Tensor(cls.forward(ctx, *[t.data for t in args]))
+        res._ctx = ctx
+        return res
+
+    @staticmethod
+    def forward(ctx: Any, args: Any) -> Any:
+        '''Performs the associated operation.
+        '''
+        raise NotImplementedError()
+
+    @staticmethod
+    def backward(ctx: Any, grad_output: Any) -> Any:
+        '''Calculates the vector jacobian product for this operation.
+        '''
+        raise NotImplementedError()
+
+
+import minigrad.ops as ops  # noqa
 
 
 class Tensor:
@@ -14,7 +50,7 @@ class Tensor:
 
     def backward(self):
         assert self.shape == (1, ) or self.shape == ()
-        
+
         # reshape scalars
         if self.shape == ():
             self.data = self.data.reshape((1, ))
@@ -36,7 +72,7 @@ class Tensor:
         if self.shape == (1, ):
             return f'tensor({self.data:.2f})'
         return f'tensor({np.array2string(self.data, prefix="tensor(")})'
-    
+
     @property
     def shape(self):
         if isinstance(self.data, np.ndarray):
@@ -45,10 +81,6 @@ class Tensor:
 
     def div(self, y):
         return self * (y ** Tensor(-1.0))
-
-    def mean(self):
-        d = Tensor(np.array([1 / self.data.size]))
-        return self.sum() * d
 
     @classmethod
     def eye(cls, dim, **kwargs):
@@ -69,3 +101,33 @@ class Tensor:
     @classmethod
     def uniform(cls, *shape, **kwargs):
         return cls((np.random.uniform(-1., 1., size=shape) / np.sqrt(np.prod(shape))).astype(np.float32), **kwargs)
+
+    # unary ops
+    def relu(self) -> Tensor:
+        return ops.ReLU().apply(self)
+
+    def sum(self) -> Tensor:
+        return ops.Sum().apply(self)
+
+    def mean(self) -> Tensor:
+        d = Tensor(np.array([1 / self.data.size]))
+        return self.sum() * d
+
+    # binary ops
+    def mul(self, other: Tensor) -> Tensor:
+        return ops.Mul().apply(self, other)
+
+    def add(self, other: Tensor) -> Tensor:
+        return ops.Add().apply(self, other)
+
+    def sub(self, other: Tensor) -> Tensor:
+        return ops.Sub().apply(self, other)
+
+    def dot(self, other: Tensor) -> Tensor:
+        return ops.Dot().apply(self, other)
+
+    # magic methods
+    def __mul__(self, x: Tensor) -> Tensor: return self.mul(x)
+    def __add__(self, x: Tensor) -> Tensor: return self.add(x)
+    def __sub__(self, x: Tensor) -> Tensor: return self.sub(x)
+    def __matmul__(self, x: Tensor) -> Tensor: return self.dot(x)
