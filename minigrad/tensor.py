@@ -156,7 +156,7 @@ class Tensor:
     def softmax(self) -> Tensor:
         x = self - self.max()
         e = x.exp()
-        s = e.sum()
+        s = e.sum(axis=-1)
         return e.div(s)
 
     def cross_entropy(self, Y: npt.NDArray) -> Tensor:
