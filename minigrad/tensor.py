@@ -1,8 +1,10 @@
 from __future__ import annotations
 from minigrad.util import topological_sort
 import numpy as np
+import numpy.typing as npt
 from typing import Any
 
+np.random.seed(10)
 np.set_printoptions(precision=4)
 
 
@@ -18,20 +20,20 @@ class Context:
 
 class Function:
     @classmethod
-    def apply(cls, *args):
+    def apply(cls, *args, **kwargs):
         ctx = Context(cls, *args)
-        res = Tensor(cls.forward(ctx, *[t.data for t in args]))
+        res = Tensor(cls.forward(ctx, *[t.data for t in args], **kwargs))
         res._ctx = ctx
         return res
 
     @staticmethod
-    def forward(ctx: Any, args: Any) -> Any:
+    def forward(ctx: Context, *args, **kwargs) -> Any:
         '''Performs the associated operation.
         '''
         raise NotImplementedError()
 
     @staticmethod
-    def backward(ctx: Any, grad_output: Any) -> Any:
+    def backward(ctx: Context, grad_output: Any) -> Any:
         '''Calculates the vector jacobian product for this operation.
         '''
         raise NotImplementedError()
@@ -41,15 +43,15 @@ import minigrad.ops as ops  # noqa
 
 
 class Tensor:
-    def __init__(self, data):
-        self.data = data
+    def __init__(self, data: Any):
+        self.data: npt.NDArray = data
         if not isinstance(data, np.ndarray):
             self.data = np.array(self.data)
-        self.grad = None
-        self._ctx = None
+        self.grad: npt.NDArray | None = None
+        self._ctx: Context | None = None
 
     def backward(self):
-        assert self.shape == (1, ) or self.shape == ()
+        # assert self.shape in {(1, ), (1, 1), ()}
 
         # reshape scalars
         if self.shape == ():
@@ -68,6 +70,16 @@ class Tensor:
             for c, g in zip(n._ctx.children, grads):
                 c.grad = g if c.grad is None else (c.grad + g)
 
+    def assign(self, x: Tensor) -> Tensor:
+        self.data = x.data
+        return self
+
+    def numpy(self):
+        return self.data
+
+    def detach(self):
+        return self.data
+
     def __repr__(self):
         if self.shape == (1, ):
             return f'tensor({self.data:.2f})'
@@ -75,13 +87,9 @@ class Tensor:
 
     @property
     def shape(self):
-        if isinstance(self.data, np.ndarray):
-            return self.data.shape
-        return (1, )
+        return self.data.shape
 
-    def div(self, y):
-        return self * (y ** Tensor(-1.0))
-
+    # *********** initialization methods ***********
     @classmethod
     def eye(cls, dim, **kwargs):
         return cls(np.eye(dim).astype(np.float32), **kwargs)
@@ -102,20 +110,29 @@ class Tensor:
     def uniform(cls, *shape, **kwargs):
         return cls((np.random.uniform(-1., 1., size=shape) / np.sqrt(np.prod(shape))).astype(np.float32), **kwargs)
 
-    # unary ops
+    # *********** unary ops ***********
     def relu(self) -> Tensor:
         return ops.ReLU().apply(self)
 
-    def sum(self) -> Tensor:
-        return ops.Sum().apply(self)
+    def exp(self) -> Tensor:
+        return ops.Exp().apply(self)
 
-    def mean(self) -> Tensor:
+    def sum(self, axis: int | None = None) -> Tensor:
+        return ops.Sum().apply(self, axis=axis)
+
+    def max(self) -> Tensor:
+        return ops.Max().apply(self)
+
+    def mean(self, axis: int | None = None) -> Tensor:
         d = Tensor(np.array([1 / self.data.size]))
-        return self.sum() * d
+        return self.sum(axis=axis) * d
 
-    # binary ops
+    # *********** binary ops ***********
     def mul(self, other: Tensor) -> Tensor:
         return ops.Mul().apply(self, other)
+
+    def div(self, other: Tensor) -> Tensor:
+        return ops.Div().apply(self, other)
 
     def add(self, other: Tensor) -> Tensor:
         return ops.Add().apply(self, other)
@@ -126,8 +143,21 @@ class Tensor:
     def dot(self, other: Tensor) -> Tensor:
         return ops.Dot().apply(self, other)
 
-    # magic methods
+    # *********** magic methods ***********
     def __mul__(self, x: Tensor) -> Tensor: return self.mul(x)
     def __add__(self, x: Tensor) -> Tensor: return self.add(x)
     def __sub__(self, x: Tensor) -> Tensor: return self.sub(x)
     def __matmul__(self, x: Tensor) -> Tensor: return self.dot(x)
+
+    # *********** nn ops ***********
+    def dropout(self, p: float = 0.5) -> Tensor:
+        raise NotImplementedError()
+
+    def softmax(self) -> Tensor:
+        x = self - self.max()
+        e = x.exp()
+        s = e.sum()
+        return e.div(s)
+
+    def cross_entropy(self, Y: npt.NDArray) -> Tensor:
+        return ops.CrossEntropy().apply(self, Tensor(Y))

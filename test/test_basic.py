@@ -1,8 +1,12 @@
 import random
 import math
 import torch
+import time
 import numpy as np
 from minigrad.tensor import Tensor
+
+
+np.random.seed(int(time.time()))
 
 
 def get_scalar_data():
@@ -74,7 +78,7 @@ def test_vector_grads():
 
     # minigrad ops
     c = a @ b
-    d = c.sum()
+    d = c.sum(axis=0)
     d.backward()
 
     np.testing.assert_allclose(aa.detach().numpy(), a.data)
@@ -143,10 +147,10 @@ def test_nn_like():
     loss_mg, pred_mg, l1_mg, l2_mg = do_minigrad()
 
     # data
-    assert is_close(loss_pt, loss_mg)
     np.testing.assert_allclose(pred_pt.detach().numpy(), pred_mg.data)
     np.testing.assert_allclose(l1_pt.detach().numpy(), l1_mg.data)
     np.testing.assert_allclose(l2_pt.detach().numpy(), l2_mg.data)
+    assert is_close(loss_pt, loss_mg)
 
     # grads
     np.testing.assert_allclose(l1_pt.grad.numpy(), l1_mg.grad)

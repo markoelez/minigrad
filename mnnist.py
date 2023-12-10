@@ -3,9 +3,13 @@ import os
 import gzip
 import requests
 import numpy as np
+from minigrad.tensor import Tensor
+from minigrad.nn.optim import SGD
+from tqdm import trange
 
+BASE = os.path.dirname(__file__) + '/eval'
 
-BASE = os.path.dirname(__file__)
+if not os.path.exists(BASE): os.makedirs(BASE)
 
 dataset_fnames = [
     "train-images-idx3-ubyte.gz",
@@ -38,6 +42,30 @@ def load():
     return X_train, Y_train, X_test, Y_test
 
 
-# download_all()
+def train():
+    pass
 
-X_train, Y_train, X_test, Y_test = load()
+
+def train(model, X_train, Y_train, optim, epochs, BS=128, lossfn=lambda out, y: out.sparse_categorical_crossentropy(y)):
+    pass
+
+
+class ConvNet:
+    def __init__(self):
+        pass
+
+    def forward(self):
+        pass
+
+
+if __name__ == '__main__':
+
+    if not all(os.path.exists(f"{BASE}/{fname}") for fname in dataset_fnames):
+        download_all()
+
+    X_train, Y_train, X_test, Y_test = load()
+
+    model = ConvNet()
+    optimizer = SGD()
+
+    train(model, X_train, Y_train, optimizer, 2)
