@@ -46,5 +46,6 @@ jobs:
         python -m pip install pytest
         python -m pip install numpy
         python -m pip install torch
+        python -m pip install colorama 
     - name: Run Pytest
       run: python -m pytest -s -v
