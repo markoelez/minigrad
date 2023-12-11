@@ -92,13 +92,12 @@ if __name__ == '__main__':
         # output = logits
         out = model(x)
 
+        loss = out.cross_entropy(y)
+
+        loss.backward()
+
         print(out.numpy())
-
-        loss = out.cross_entropy(Y_train)
-
         print(loss)
-
-        # loss.backward()
 
         # optimizer.step()
 

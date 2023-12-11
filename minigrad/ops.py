@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 from minigrad.tensor import Function, Context
 
 
@@ -71,7 +72,7 @@ class Sub(Function):
 
     @staticmethod
     def backward(ctx: Context, grad_output):
-        return 1, -1
+        return grad_output, -grad_output
 
 
 class Div(Function):
@@ -89,44 +90,44 @@ class Div(Function):
         return grad_x, grad_y
 
 
-class Max(Function):
+class Exp(Function):
     @staticmethod
     def forward(ctx: Context, x):
-        ctx.save_for_backward(x.data)
-        out = np.max(x.data, axis=-1)
-        if len(out.shape) == 1: return out.reshape(-1, 1)
+        out = np.exp(x.data)
+        ctx.save_for_backward(out)
         return out
 
     @staticmethod
     def backward(ctx: Context, grad_output):
-        x = ctx.saved_data
-        mask = x == np.max(x, axis=-1, keepdims=True)
-        return mask * grad_output.reshape(*grad_output.shape, 1)
+        out, = ctx.saved_data
+        return grad_output * out
 
 
-class Exp(Function):
+class Max(Function):
     @staticmethod
-    def forward(ctx: Context, x):
-        res = np.exp(x.data)
-        ctx.save_for_backward(res)
-        return res
+    def forward(ctx: Context, x, axis=None):
+        out = np.max(x, axis=axis, keepdims=True)
+        ctx.save_for_backward(x, axis)
+        return out
 
     @staticmethod
     def backward(ctx: Context, grad_output):
-        return ctx.saved_data * grad_output
+        x, axis = ctx.saved_data
+        mask = (x == np.max(x, axis=axis, keepdims=True))
+        out = (mask * grad_output).astype(np.float64)
+        out /= np.sum(mask, axis=axis, keepdims=True)
+        return out
 
 
 class Sum(Function):
     @staticmethod
-    def forward(ctx: Context, x, axis=None):
+    def forward(ctx: Context, x: npt.NDArray, axis: tuple[int]):
         ctx.save_for_backward(x.shape)
-        out = np.sum(x, axis=axis)
-        if len(out.shape) == 1: return out.reshape(-1, 1)
-        return out
+        return np.sum(x, axis=axis, keepdims=True)
 
     @staticmethod
     def backward(ctx: Context, grad_output):
-        return np.ones(*ctx.saved_data) * grad_output
+        return grad_output * np.ones(*ctx.saved_data)
 
 
 class CrossEntropy(Function):
@@ -148,8 +149,32 @@ class CrossEntropy(Function):
     def backward(ctx: Context, grad_output):
         softmax_x, y = ctx.saved_data
 
-        # Gradient of cross-entropy with respect to x
         grad_x = softmax_x - y
-        grad_x /= y.shape[0]  # Average over batch size
+        grad_x /= y.shape[0]
 
         return grad_x * grad_output
+
+
+class Reshape(Function):
+    @staticmethod
+    def forward(ctx: Context, x, shape):
+        ctx.save_for_backward(x.shape)
+        return x.reshape(shape)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: npt.NDArray):
+        shape, = ctx.saved_data
+        return grad_output.reshape(shape)
+
+
+class Expand(Function):
+    @staticmethod
+    def forward(ctx: Context, x, shape):
+        ctx.save_for_backward(x.shape)
+        return np.broadcast_to(x, shape)
+
+    @staticmethod
+    def backward(ctx: Context, grad_output: npt.NDArray):
+        shape, = ctx.saved_data
+        axis = tuple(i for i, (a, b) in enumerate(zip(grad_output.shape, shape)) if a != b)
+        return np.sum(grad_output, axis=axis, keepdims=True)

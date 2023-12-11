@@ -1,3 +1,12 @@
+import os
+from colorama import Style
+
+
+DEBUG = os.getenv("DEBUG")
+
+
+def log(*s): return print(*s, Style.RESET_ALL)
+
 
 def topological_sort(node):
     '''

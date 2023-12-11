@@ -5,8 +5,8 @@ import requests
 import numpy as np
 import random
 import json
-from torch import Tensor
-from minigrad.tensor import Tensor as Tens
+from torch import tensor
+from minigrad.tensor import Tensor
 from torch.optim import SGD
 from torch.nn.functional import softmax, cross_entropy
 from tqdm import trange
@@ -63,8 +63,8 @@ def prepare(dataset, test_size=0.2, shuffle=False):
 
 class NN:
     def __init__(self):
-        self.l1: Tensor = Tensor(Tens.uniform(4, 10).numpy())
-        self.l2: Tensor = Tensor(Tens.uniform(10, 3).numpy())
+        self.l1: tensor = tensor(Tensor.uniform(4, 10).numpy(), requires_grad=True)
+        self.l2: tensor = tensor(Tensor.uniform(10, 3).numpy(), requires_grad=True)
 
     def forward(self, x):
         x = x.matmul(self.l1)
@@ -89,17 +89,19 @@ if __name__ == '__main__':
     for _ in (t := trange(1)):
         optimizer.zero_grad()
 
-        x, y = Tensor(X_train), Tensor(Y_train)
+        x, y = tensor(X_train, requires_grad=True), tensor(Y_train, requires_grad=True)
 
         # output = logits
         out = model(x)
-        print(out.numpy())
 
         loss = cross_entropy(out, y)
+
+        loss.backward()
+
+        print(out.detach().numpy())
         print(loss)
 
         break
-        # loss.backward()
 
         # optimizer.step()
 
