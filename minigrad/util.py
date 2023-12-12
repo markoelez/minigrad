@@ -1,4 +1,6 @@
 import os
+import numpy as np
+import numpy.typing as npt
 from colorama import Style
 
 
@@ -6,6 +8,17 @@ DEBUG = os.getenv("DEBUG")
 
 
 def log(*s): return print(*s, Style.RESET_ALL)
+
+
+def one_hot_encode(labels: npt.NDArray) -> npt.NDArray:
+
+    m = np.unique(labels)
+    h = {x: i for i, x in enumerate(m)}
+
+    a = np.zeros((len(labels), len(h)))
+    for i, x in enumerate(labels):
+        a[i][h[x]] = 1
+    return a
 
 
 def topological_sort(node):

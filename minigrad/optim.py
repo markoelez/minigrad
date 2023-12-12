@@ -4,7 +4,7 @@ from minigrad.tensor import Tensor
 class Optimizer:
     def __init__(self, params: list[Tensor], lr: float):
         self.params: list[Tensor] = params
-        self.lr: Tensor = Tensor([lr])
+        self.lr: float = lr
 
     def zero_grad(self):
         for x in self.params: x.grad = None
@@ -19,7 +19,6 @@ class SGD(Optimizer):
 
     def step(self):
         for t in self.params:
-            assert t.grad
+            assert t.grad is not None
             # update weights
-            d = t.numpy() - t.grad * self.lr
-            t.assign(d)
+            t.data = t.numpy() - t.grad * self.lr

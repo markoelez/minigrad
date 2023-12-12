@@ -152,7 +152,7 @@ class CrossEntropy(Function):
         grad_x = softmax_x - y
         grad_x /= y.shape[0]
 
-        return grad_x * grad_output
+        return grad_x * grad_output, 0
 
 
 class Reshape(Function):

@@ -7,6 +7,7 @@ import random
 import json
 from minigrad.tensor import Tensor
 from minigrad.optim import SGD
+from minigrad.util import one_hot_encode
 from tqdm import trange
 
 np.random.seed(10)
@@ -29,17 +30,6 @@ def fetch(url):
     return res
 
 
-def one_hot_encode(labels):
-
-    m = np.unique(labels)
-    h = {x: i for i, x in enumerate(m)}
-
-    a = np.zeros((len(labels), len(h)))
-    for i, x in enumerate(labels):
-        a[i][h[x]] = 1
-    return a
-
-
 def prepare(dataset, test_size=0.2, shuffle=False):
 
     def parse(dataset):
@@ -56,7 +46,9 @@ def prepare(dataset, test_size=0.2, shuffle=False):
 
     i = int((1 - test_size) * len(dataset[0]))
 
-    return dataset[0][:i], dataset[1][:i], dataset[0][i:], dataset[1][i:]
+    out = [dataset[0][:i], dataset[1][:i], dataset[0][i:], dataset[1][i:]]
+
+    return tuple(map(np.array, out))
 
 
 class NN:
@@ -82,27 +74,29 @@ if __name__ == '__main__':
     X_train, Y_train, X_test, Y_test = prepare(dataset)
 
     model = NN()
-    optimizer = SGD(params=[model.l1, model.l2])
+    optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
 
-    for _ in (t := trange(1)):
-        optimizer.zero_grad()
+    epochs = 10000
+    batch_size = 50
 
-        x, y = Tensor(X_train), Tensor(Y_train)
+    for _ in (t := trange(epochs)):
+
+        idx = np.random.choice(len(X_train), batch_size, replace=False)
+
+        x, y = Tensor(X_train[idx]), Tensor(Y_train[idx])
 
         # output = logits
         out = model(x)
 
         loss = out.cross_entropy(y)
 
+        optimizer.zero_grad()
+
         loss.backward()
 
-        print(out.numpy())
-        print(loss)
-
-        # optimizer.step()
+        optimizer.step()
 
         # eval
         cat = np.argmax(out.numpy(), axis=-1)
         accuracy = (cat == np.argmax(y.numpy(), axis=-1)).mean()
-        loss = 1
-        t.set_description("loss %.2f accuracy %.2f" % (loss, accuracy))
+        t.set_description("loss %.2f accuracy %.2f" % (loss.data, accuracy))

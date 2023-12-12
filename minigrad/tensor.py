@@ -82,14 +82,11 @@ class Tensor:
             for c, g in zip(n._ctx.children, grads):
                 c.grad = g if c.grad is None else (c.grad + g)
 
-    def assign(self, x: Tensor) -> Tensor:
-        self.data = x.data
-        return self
+            del n._ctx
+
+        if DEBUG: print('*' * 80)
 
     def numpy(self):
-        return self.data
-
-    def detach(self):
         return self.data
 
     def __repr__(self):

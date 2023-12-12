@@ -4,6 +4,7 @@ import math
 import time
 import numpy as np
 from minigrad.tensor import Tensor
+from minigrad.util import one_hot_encode
 from torch import tensor
 from torch.nn.functional import softmax, cross_entropy
 
@@ -193,5 +194,19 @@ def test_softmax():
 
 
 def test_cross_entropy():
-    # TODO
-    assert True
+    a = np.random.randn(*shape)
+    b = one_hot_encode(np.argmax(np.random.randn(*shape), axis=-1))
+
+    x, y = Tensor(a), tensor(a, requires_grad=True)
+    xt, yt = Tensor(b), tensor(b, requires_grad=True)
+    # forward
+    xx = x.cross_entropy(xt)
+    yy = cross_entropy(y, yt)
+    yy.retain_grad()
+    assert_eq(xx.numpy(), yy.detach().numpy())
+    assert_eq(x.numpy(), y.detach().numpy())
+    # backward
+    yy.backward()
+    xx.backward()
+    assert_eq(xx.grad, yy.grad)
+    assert_eq(x.grad, y.grad)

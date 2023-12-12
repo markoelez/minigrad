@@ -70,7 +70,7 @@ class NN:
         x = x.matmul(self.l1)
         x = x.relu()
         x = x.matmul(self.l2)
-        x = softmax(x)
+        x = softmax(x, dim=-1)
         return x
 
     def __call__(self, x):
@@ -86,8 +86,7 @@ if __name__ == '__main__':
     model = NN()
     optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
 
-    for _ in (t := trange(1)):
-        optimizer.zero_grad()
+    for _ in (t := trange(10000)):
 
         x, y = tensor(X_train, requires_grad=True), tensor(Y_train, requires_grad=True)
 
@@ -95,18 +94,13 @@ if __name__ == '__main__':
         out = model(x)
 
         loss = cross_entropy(out, y)
+        optimizer.zero_grad()
 
         loss.backward()
 
-        print(out.detach().numpy())
-        print(loss)
-
-        break
-
-        # optimizer.step()
+        optimizer.step()
 
         # eval
-        cat = np.argmax(out.numpy(), axis=-1)
-        accuracy = (cat == np.argmax(y.numpy(), axis=-1)).mean()
-        loss = 1
+        cat = np.argmax(out.detach().numpy(), axis=-1)
+        accuracy = (cat == np.argmax(y.detach().numpy(), axis=-1)).mean()
         t.set_description("loss %.2f accuracy %.2f" % (loss, accuracy))
