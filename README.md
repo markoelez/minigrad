@@ -13,7 +13,7 @@ Inspired by [karpathy/micrograd](https://github.com/karpathy/micrograd) and [pyt
 
 ### Nueral Networks
 
-See `eval/` for fully-functional examples.
+See `eval/` for concrete implementations.
 
 Example:
 
