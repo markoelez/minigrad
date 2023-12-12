@@ -4,7 +4,7 @@ import numpy.typing as npt
 from colorama import Style
 
 
-DEBUG = os.getenv("DEBUG")
+DEBUG = int(os.getenv("DEBUG", '0'))
 
 
 def log(*s): return print(*s, Style.RESET_ALL)

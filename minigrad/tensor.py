@@ -63,8 +63,7 @@ class Tensor:
 
             # calculate vector jacobian products
             grads = n._ctx.func.backward(n._ctx, n.grad)
-            if len(n._ctx.children) == 1:
-                grads = [grads]
+            if len(n._ctx.children) == 1: grads = [grads]
 
             if DEBUG:
                 print('*' * 80)
@@ -72,11 +71,18 @@ class Tensor:
                 print('-' * 15)
                 log(f'{Fore.LIGHTCYAN_EX}input grad:')
                 print('-' * 15)
-                print(n.grad)
+                if DEBUG > 1:
+                    print(n.grad)
+                else:
+                    print(n.grad.shape)
                 print('-' * 15)
-                log(f'{Fore.LIGHTCYAN_EX}output grad:')
+                log(f'{Fore.LIGHTCYAN_EX}output grads:')
                 print('-' * 15)
-                for x in grads: print(x)
+                if DEBUG > 1:
+                    for x in grads: print(grads)
+                else:
+                    for x in grads:
+                        print(() if isinstance(x, int) else x.shape)
 
             # add vjp's to associated child nodes
             for c, g in zip(n._ctx.children, grads):
