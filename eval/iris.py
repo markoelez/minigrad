@@ -76,10 +76,10 @@ if __name__ == '__main__':
     model = NN()
     optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
 
-    epochs = 1
+    epochs = 10000
     batch_size = 50
 
-    for _ in (t := range(epochs)):
+    for _ in (t := trange(epochs)):
 
         idx = np.random.choice(len(X_train), batch_size, replace=False)
 
@@ -99,4 +99,4 @@ if __name__ == '__main__':
         # eval
         cat = np.argmax(out.numpy(), axis=-1)
         accuracy = (cat == np.argmax(y.numpy(), axis=-1)).mean()
-        # t.set_description("loss %.2f accuracy %.2f" % (loss.data, accuracy))
+        t.set_description("loss %.2f accuracy %.2f" % (loss.data, accuracy))
