@@ -53,13 +53,19 @@ def prepare(dataset, test_size=0.2, shuffle=False):
 
 class NN:
     def __init__(self):
-        self.l1: Tensor = Tensor.uniform(4, 10)
-        self.l2: Tensor = Tensor.uniform(10, 3)
+        self.l1: Tensor = Tensor.uniform(4, 1000)
+        self.l2: Tensor = Tensor.uniform(1000, 500)
+        self.l3: Tensor = Tensor.uniform(500, 300)
+        self.l4: Tensor = Tensor.uniform(300, 3)
 
     def forward(self, x):
         x = x.dot(self.l1)
         x = x.relu()
         x = x.dot(self.l2)
+        x = x.relu()
+        x = x.dot(self.l3)
+        x = x.relu()
+        x = x.dot(self.l4)
         x = x.softmax()
         return x
 
@@ -74,10 +80,10 @@ if __name__ == '__main__':
     X_train, Y_train, X_test, Y_test = prepare(dataset)
 
     model = NN()
-    optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
+    optimizer = SGD(params=[model.l1, model.l2], lr=0.001)
 
-    epochs = 10000
-    batch_size = 50
+    epochs = 1000
+    batch_size = 20
 
     for _ in (t := trange(epochs)):
 
