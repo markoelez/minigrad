@@ -1,5 +1,5 @@
 tmp/
-eval/
+eval/tmp
 venv/
 
 .DS_Store

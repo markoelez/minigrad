@@ -5,14 +5,15 @@ import requests
 import numpy as np
 import random
 import json
+from torch import tensor
 from minigrad.tensor import Tensor
-from minigrad.optim import SGD
-from minigrad.util import one_hot_encode
+from torch.optim import SGD
+from torch.nn.functional import softmax, cross_entropy
 from tqdm import trange
 
 np.random.seed(10)
 
-BASE = os.path.dirname(__file__) + '/eval'
+BASE = os.path.dirname(__file__) + '/tmp'
 
 if not os.path.exists(BASE): os.makedirs(BASE)
 
@@ -28,6 +29,17 @@ def fetch(url):
     with open(fpath, 'w') as f:
         f.write(json.dumps(res))
     return res
+
+
+def one_hot_encode(labels):
+
+    m = np.unique(labels)
+    h = {x: i for i, x in enumerate(m)}
+
+    a = np.zeros((len(labels), len(h)))
+    for i, x in enumerate(labels):
+        a[i][h[x]] = 1
+    return a
 
 
 def prepare(dataset, test_size=0.2, shuffle=False):
@@ -46,21 +58,19 @@ def prepare(dataset, test_size=0.2, shuffle=False):
 
     i = int((1 - test_size) * len(dataset[0]))
 
-    out = [dataset[0][:i], dataset[1][:i], dataset[0][i:], dataset[1][i:]]
-
-    return tuple(map(np.array, out))
+    return dataset[0][:i], dataset[1][:i], dataset[0][i:], dataset[1][i:]
 
 
 class NN:
     def __init__(self):
-        self.l1: Tensor = Tensor.uniform(4, 10)
-        self.l2: Tensor = Tensor.uniform(10, 3)
+        self.l1: tensor = tensor(Tensor.uniform(4, 10).numpy(), requires_grad=True)
+        self.l2: tensor = tensor(Tensor.uniform(10, 3).numpy(), requires_grad=True)
 
     def forward(self, x):
-        x = x.dot(self.l1)
+        x = x.matmul(self.l1)
         x = x.relu()
-        x = x.dot(self.l2)
-        x = x.softmax()
+        x = x.matmul(self.l2)
+        x = softmax(x, dim=-1)
         return x
 
     def __call__(self, x):
@@ -76,20 +86,14 @@ if __name__ == '__main__':
     model = NN()
     optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
 
-    epochs = 10000
-    batch_size = 50
+    for _ in (t := trange(10000)):
 
-    for _ in (t := trange(epochs)):
-
-        idx = np.random.choice(len(X_train), batch_size, replace=False)
-
-        x, y = Tensor(X_train[idx]), Tensor(Y_train[idx])
+        x, y = tensor(X_train, requires_grad=True), tensor(Y_train, requires_grad=True)
 
         # output = logits
         out = model(x)
 
-        loss = out.cross_entropy(y)
-
+        loss = cross_entropy(out, y)
         optimizer.zero_grad()
 
         loss.backward()
@@ -97,6 +101,6 @@ if __name__ == '__main__':
         optimizer.step()
 
         # eval
-        cat = np.argmax(out.numpy(), axis=-1)
-        accuracy = (cat == np.argmax(y.numpy(), axis=-1)).mean()
-        t.set_description("loss %.2f accuracy %.2f" % (loss.data, accuracy))
+        cat = np.argmax(out.detach().numpy(), axis=-1)
+        accuracy = (cat == np.argmax(y.detach().numpy(), axis=-1)).mean()
+        t.set_description("loss %.2f accuracy %.2f" % (loss, accuracy))

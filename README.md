@@ -8,55 +8,59 @@ Simple vector-valued autodiff library.
 
 Inspired by [karpathy/micrograd](https://github.com/karpathy/micrograd) and [pytorch](https://github.com/pytorch/pytorch)
 
-### examples
 
-basic:
+## Features
 
-```python
-from minigrad.tensor import Tensor
+### Nueral Networks
 
+See `eval/` for fully-functional examples.
 
-x = Tensor.eye(8)
-y = Tensor.randn(8, 12)
-
-z = a.dot(b).sum()
-z.backward()
-
-print(x.grad)
-print(y.grad)
-```
-
-neural network training step (kind of):
+Example:
 
 ```python
-from minigrad.tensor import Tensor
+class NN:
+    def __init__(self):
+        self.l1: Tensor = Tensor.uniform(4, 10)
+        self.l2: Tensor = Tensor.uniform(10, 3)
 
-lr = 0.01
+    def forward(self, x):
+        x = x.dot(self.l1)
+        x = x.relu()
+        x = x.dot(self.l2)
+        x = x.softmax()
+        return x
 
-# training data
-x = np.random.rand(100, 784)
-y = np.random.rand(100, 10)
+    def __call__(self, x):
+        return self.forward(x)
 
-# layers
-l1 = Tensor.randn(784, 128)
-l2 = Tensor.randn(128, 10)
+# input data
+X_train, Y_train, X_test, Y_test = prepare(dataset)
 
-# forward pass
-x = x @ l1
-x = x.relu()
-x = x @ l2
+model = NN()
+optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
 
-# calculate loss
-x = x * y
-x = x.mean()
+for _ in (t := trange(10)):
 
-# backpropogation (gradients with respect to loss)
-x.backward()
+    # initialize tensors
+    x, y = Tensor(X_train), Tensor(Y_train)
 
-# training loss
-loss = x.data
+    # forward pass
+    out = model(x)
 
-# SGD
-l1.data = l1.data - lr * l1.grad
-l2.data = l2.data - lr * l2.grad
+    # compute loss
+    loss = out.cross_entropy(y)
+
+    # reset gradients
+    optimizer.zero_grad()
+
+    # backward pass
+    loss.backward()
+
+    # adjust weights
+    optimizer.step()
+
+    # eval
+    cat = np.argmax(out.numpy(), axis=-1)
+    accuracy = (cat == np.argmax(y.numpy(), axis=-1)).mean()
+    print(loss, accuracy)
 ```
