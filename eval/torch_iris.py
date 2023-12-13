@@ -7,7 +7,8 @@ import random
 import json
 from torch import tensor
 from minigrad.tensor import Tensor
-from torch.optim import SGD
+from minigrad.util import one_hot_encode
+from torch.optim import SGD, Adam
 from torch.nn.functional import softmax, cross_entropy
 from tqdm import trange
 
@@ -31,18 +32,7 @@ def fetch(url):
     return res
 
 
-def one_hot_encode(labels):
-
-    m = np.unique(labels)
-    h = {x: i for i, x in enumerate(m)}
-
-    a = np.zeros((len(labels), len(h)))
-    for i, x in enumerate(labels):
-        a[i][h[x]] = 1
-    return a
-
-
-def prepare(dataset, test_size=0.2, shuffle=False):
+def prepare(dataset, test_size=0.2, shuffle=True):
 
     def parse(dataset):
         x, y = [], []
@@ -58,18 +48,25 @@ def prepare(dataset, test_size=0.2, shuffle=False):
 
     i = int((1 - test_size) * len(dataset[0]))
 
-    return dataset[0][:i], dataset[1][:i], dataset[0][i:], dataset[1][i:]
+    out = [dataset[0][:i], dataset[1][:i], dataset[0][i:], dataset[1][i:]]
+
+    return tuple(map(lambda x: np.array(x, dtype=np.float32), out))
 
 
 class NN:
     def __init__(self):
-        self.l1: tensor = tensor(Tensor.uniform(4, 10).numpy(), requires_grad=True)
-        self.l2: tensor = tensor(Tensor.uniform(10, 3).numpy(), requires_grad=True)
+        self.l1: tensor = tensor(Tensor.uniform(4, 128).numpy(), requires_grad=True)
+        self.l2: tensor = tensor(Tensor.uniform(128, 64).numpy(), requires_grad=True)
+        self.l3: tensor = tensor(Tensor.uniform(64, 3).numpy(), requires_grad=True)
+
+        self.params = [self.l1, self.l2, self.l3]
 
     def forward(self, x):
         x = x.matmul(self.l1)
         x = x.relu()
         x = x.matmul(self.l2)
+        x = x.relu()
+        x = x.matmul(self.l3)
         x = softmax(x, dim=-1)
         return x
 
@@ -84,23 +81,37 @@ if __name__ == '__main__':
     X_train, Y_train, X_test, Y_test = prepare(dataset)
 
     model = NN()
-    optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
+    optim = Adam(params=model.params, lr=0.001)
 
-    for _ in (t := trange(10000)):
+    epochs = 10000
+    batch_size = 32
 
-        x, y = tensor(X_train, requires_grad=True), tensor(Y_train, requires_grad=True)
+    for _ in (t := trange(epochs)):
+        optim.zero_grad()
 
-        # output = logits
+        idx = np.random.choice(len(X_train), batch_size, replace=False)
+
+        x, y = tensor(X_train[idx], requires_grad=True), tensor(Y_train[idx], requires_grad=True)
+
         out = model(x)
 
         loss = cross_entropy(out, y)
-        optimizer.zero_grad()
 
         loss.backward()
 
-        optimizer.step()
+        optim.step()
 
         # eval
         cat = np.argmax(out.detach().numpy(), axis=-1)
         accuracy = (cat == np.argmax(y.detach().numpy(), axis=-1)).mean()
-        t.set_description("loss %.2f accuracy %.2f" % (loss, accuracy))
+        t.set_description(f"loss: {loss:.2f} accuracy: {accuracy:.2f}")
+
+    x, y = tensor(X_test), tensor(Y_test)
+
+    out = model(x)
+
+    print('*' * 100)
+    cat = np.argmax(out.detach().numpy(), axis=-1)
+    accuracy = (cat == np.argmax(y.detach().numpy(), axis=-1)).mean()
+    print(f"test accuracy: {accuracy:.2f}")
+    print('*' * 100)
