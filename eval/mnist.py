@@ -73,7 +73,7 @@ if __name__ == '__main__':
     model = NN()
     optim = Adam(params=model.params, lr=0.001)
 
-    epochs = 1000
+    epochs = 10000
     batch_size = 128
 
     for _ in (t := trange(epochs)):
