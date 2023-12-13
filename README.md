@@ -23,6 +23,8 @@ class NN:
         self.l1: Tensor = Tensor.uniform(4, 10)
         self.l2: Tensor = Tensor.uniform(10, 3)
 
+        self.params = [self.l1, self.l2]
+
     def forward(self, x):
         x = x.dot(self.l1)
         x = x.relu()
@@ -37,12 +39,21 @@ class NN:
 X_train, Y_train, X_test, Y_test = prepare(dataset)
 
 model = NN()
-optimizer = SGD(params=[model.l1, model.l2], lr=0.01)
+optim = Adam(params=model.params, lr=0.001)
 
-for _ in (t := trange(10)):
+epochs = 1000
+batch_size = 128
+
+for _ in (t := trange(epochs)):
+
+    # reset gradients
+    optim.zero_grad()
+
+    # select batch
+    idx = np.random.choice(len(X_train), batch_size, replace=False)
 
     # initialize tensors
-    x, y = Tensor(X_train), Tensor(Y_train)
+    x, y = Tensor(X_train[idx]), Tensor(Y_train[idx])
 
     # forward pass
     out = model(x)
@@ -50,14 +61,11 @@ for _ in (t := trange(10)):
     # compute loss
     loss = out.cross_entropy(y)
 
-    # reset gradients
-    optimizer.zero_grad()
-
     # backward pass
     loss.backward()
 
     # adjust weights
-    optimizer.step()
+    optim.step()
 
     # eval
     cat = np.argmax(out.numpy(), axis=-1)
