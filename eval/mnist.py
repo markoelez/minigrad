@@ -45,6 +45,33 @@ def load():
     return X_train, one_hot_encode(Y_train), X_test, one_hot_encode(Y_test)
 
 
+class ConvNet:
+    def __init__(self):
+        conv, cin, cout = 3, 8, 16
+
+        self.c1 = Tensor.uniform(cin, 1, conv, conv)
+        self.c2 = Tensor.uniform(cout, cin, conv, conv)
+        self.l1 = Tensor.uniform(cout * 5 * 5, 10)
+
+        self.params = [self.l1, self.c1, self.c2]
+
+    def forward(self, x):
+        x = x.reshape(shape=(-1, 1, 28, 28))
+        x = x.conv2d(self.c1)
+        x = x.relu()
+        x = x.max_pool2d()
+        x = x.conv2d(self.c2)
+        x = x.relu()
+        x = x.max_pool2d()
+        x = x.reshape(shape=[x.shape[0], -1])
+        x = x.dot(self.l1)
+        x = x.softmax()
+        return x
+
+    def __call__(self, x):
+        return self.forward(x)
+
+
 class NN:
     def __init__(self):
         self.l1: Tensor = Tensor.uniform(784, 128)
@@ -70,10 +97,10 @@ if __name__ == '__main__':
 
     X_train, Y_train, X_test, Y_test = load()
 
-    model = NN()
+    model = ConvNet()
     optim = Adam(params=model.params, lr=0.001)
 
-    epochs = 10000
+    epochs = 500
     batch_size = 128
 
     for _ in (t := trange(epochs)):

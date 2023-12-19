@@ -230,3 +230,9 @@ class Tensor:
 
     def cross_entropy(self, Y: npt.NDArray) -> Tensor:
         return ops.CrossEntropy().apply(self, Y)
+
+    def conv2d(self, Y: npt.NDArray) -> Tensor:
+        return ops.Conv2D().apply(self, Y)
+
+    def max_pool2d(self) -> Tensor:
+        return ops.MaxPool2D().apply(self)
