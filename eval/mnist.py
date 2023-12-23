@@ -57,12 +57,8 @@ class ConvNet:
 
     def forward(self, x):
         x = x.reshape(shape=(-1, 1, 28, 28))
-        x = x.conv2d(self.c1)
-        x = x.relu()
-        x = x.max_pool2d()
-        x = x.conv2d(self.c2)
-        x = x.relu()
-        x = x.max_pool2d()
+        x = x.conv2d(self.c1).relu().max_pool2d()
+        x = x.conv2d(self.c2).relu().max_pool2d()
         x = x.reshape(shape=[x.shape[0], -1])
         x = x.dot(self.l1)
         x = x.softmax()

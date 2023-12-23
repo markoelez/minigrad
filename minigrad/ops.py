@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.typing as npt
 from minigrad.tensor import Function, Context
+from minigrad.util import DEBUG
 
 
 class Add(Function):
@@ -187,8 +188,11 @@ class Conv2D(Function):
         cout, cin, H, W = w.shape
         ys, xs = stride
         bs, cin_, oy, ox = x.shape[0], x.shape[1], (x.shape[2] - (H - ys)) // ys, (x.shape[3] - (W - xs)) // xs
+
+        if DEBUG: print(f'cin={cin}, cout={cout}, H={H}, W={W}, cin_={cin_}')
         assert cin * groups == cin_
         assert cout % groups == 0
+
         rcout = cout // groups
         gx = x.reshape(bs, groups, cin, x.shape[2], x.shape[3])
         tx = np.lib.stride_tricks.as_strided(gx,
